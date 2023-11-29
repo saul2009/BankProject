@@ -1,20 +1,30 @@
 import os
 import socket
-from cryptography.hazmat.primitives import serialization #Used to transmit keys with PEM encryption 
-from cryptography.hazmat.backends import default_backend
+import rsa ##pip install rsa
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
+
+####Create 1024 key for bank/atm
+##atm_public_key, atm_private_key = rsa.newkeys(1024)
+
+##with open("atm2_public_key.pem", "wb") as f:
+##	f.write(atm_public_key.save_pkcs1("PEM"))
+
+##with open("atm2_private_key.pem", "wb") as f:
+##	f.write(atm_private_key.save_pkcs1("PEM"))
+
 
 ##################################### Functions to assist ##########################################################
 
 def load_public_key(file_path):
     with open(file_path, "rb") as key_file:
-        public_key_bytes = key_file.read()
-        public_key = serialization.load_pem_public_key(public_key_bytes, backend=default_backend())
+        public_key = rsa.PublicKey.load_pkcs1(key_file.read())
         return public_key
-    
+		
+
 def load_private_key(file_path):
     with open(file_path, "rb") as key_file:
-        private_key_bytes = key_file.read()
-        private_key = serialization.load_pem_private_key(private_key_bytes,password=None ,backend=default_backend())
+        private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
         return private_key
 
 ##Specify the directories containing the public key
@@ -23,22 +33,19 @@ current_dir = os.getcwd()
 
 ########################### load public keys for atm and keys for bank ##############################################
 
-#ATM1
-atm1_public_key_path = os.path.join(current_dir, "atmkeys" ,"public-key-atm1.pem")
-atm1_public_key = load_public_key(atm1_public_key_path)
+##ATM Public Keys
 
-#ATM2
-atm2_public_key_path = os.path.join(current_dir, "atmkeys" , "public-key-atm2.pem")
-atm2_public_key = load_public_key(atm2_public_key_path)
+#ATM1
+atm1_public_key_path = os.path.join(current_dir, "atmkeys" ,"atm1_public_key.pem")
+atm1_public_key = load_public_key(atm1_public_key_path)
 
 #BankKeys
 
-#public
-bank_public_key_path = os.path.join(current_dir, "bankkey" , "public-key-bank.pem")
-atm2_public_key = load_public_key(bank_public_key_path)
+bank_public_key_path = os.path.join(current_dir, "bankkey" , "bank_public_key.pem")
+bank_public_key = load_public_key(bank_public_key_path)
 
-#pivate
-bank_private_key_path = os.path.join(current_dir, "bankkey" , "private-key-bank.pem")
+#private bank
+bank_private_key_path = os.path.join(current_dir, "bankkey" ,"bank_private_key.pem")
 bank_private_key = load_private_key(bank_private_key_path)
 
 ##################################### Keys are now loaded ###########################################################
@@ -49,23 +56,23 @@ bank_private_key = load_private_key(bank_private_key_path)
 PORT_NUMBER = 1235
 
 # Create a socket
-bank_serverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+bank_Sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
 # Associate the socket with the port
-bank_serverSock.bind(('', PORT_NUMBER)) 
+bank_Sock.bind(('', PORT_NUMBER)) 
 
 # Start listening for incoming connections (we can have
 # at most 100 connections waiting to be accepted before
 # the server starts rejecting new connections)
-bank_serverSock.listen(100)
+bank_Sock.listen(100)
 
 # Keep accepting connections forever
 while True:
 
-	print("Waiting for clients to connect...")
+	print("Bank server is listening...")
 	
 	# Accept a waiting connection
-	cliSock, cliInfo = bank_serverSock.accept()
+	cliSock, cliInfo = bank_Sock.accept()
     
 	
 	
@@ -75,13 +82,15 @@ while True:
 	# This will receive at most 1024 bytes
 	cliMsg = cliSock.recv(1024)
 
-	# The string containg the uppercased messaged
-	upperMsgStr = cliMsg.decode().upper()
+	clear_message = rsa.decrypt(cliMsg , bank_private_key)
 
-	print("Client sent " + str(cliMsg.decode()))
+	# The string containg the uppercased messaged
+	#upperMsgStr = cliMsg.decode().upper()
+
+	print("Client sent " + str(clear_message.decode()))
 
 	# Send the upper cased string back to the client
-	cliSock.send(upperMsgStr.encode())
+	#cliSock.send(upperMsgStr.encode())
 	
 	
 	# Hang up the client's connection
