@@ -1,8 +1,9 @@
 import os
 import socket
 import rsa
-from cryptography.hazmat.primitives import serialization #Used to transmit keys with PEM encryption 
-from cryptography.hazmat.backends import default_backend
+import datetime
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
 
 ##################################### Functions to assist ##########################################################
 
@@ -18,12 +19,9 @@ def load_private_key(file_path):
         return private_key
     
 
-
-##Specify the directories containing the public key
+########################### load public keys for atm and keys for bank ##############################################
 
 current_dir = os.getcwd()
-
-########################### load public keys for atm and keys for bank ##############################################
 
 #ATM1
 atm1_public_key_path = os.path.join(current_dir, "atmkeys" ,"atm1_public_key.pem")
@@ -65,9 +63,56 @@ atm_sock.connect((SERVER_IP, SERVER_PORT))
 
 
 # Send the message to the server
-msg = input("Please enter a message to send to the server: ")
+user_id = input("enter your user ID: ")
+atm_sock.send(user_id.encode('utf-8'))
+pin = input("enter your PIN: ")
+atm_sock.send(pin.encode('utf-8'))
+ 
+# Recive the response from the server
+servMsg = atm_sock.recv(1024)
 
-encrypted_message = rsa.encrypt(msg.encode(), bank_public_key)
+#print 
+print("server sent this back " + servMsg.decode())
+
+while True:
+    print("\nMenu:")
+    print("1. Check Balance")
+    print("2. Deposit Money")
+    print("3. Withdraw Money")
+    print("4. View Account activites")
+    print("5. Quit")
+
+    choice = input("Enter your choice (1-5): ")
+
+    if choice == '1' or choice == '4' or choice == '5':
+        atm_sock.send(choice.encode)
+        servMsg = atm_sock.recv(1024)
+        print(servMsg.decode())
+        if choice == '5':
+            break
+    elif choice == '2' or choice == '3':
+        amount = float(input("Enter the amount: "))
+        atm_sock.send(choice.encode())
+        atm_sock.send(str(amount).encode())
+        servMsg = atm_sock.recv(1024)
+        print(servMsg.decode())
+    else:
+        print("Invalid choice")
+    
+    atm_sock.close()
+
+
+
+
+
+
+
+
+
+
+
+
+#encrypted_message = rsa.encrypt(msg.encode(), bank_public_key)
 
 
 # Send the message to the server
@@ -75,7 +120,7 @@ encrypted_message = rsa.encrypt(msg.encode(), bank_public_key)
 # Sending data over the socket requires.
 # First converting the string into bytes.
 # encode() function achieves this.
-atm_sock.send(encrypted_message)
+#atm_sock.send(encrypted_message)
 
 # Recive the response from the server
 #servMsg = atm_sock.recv(1024)
