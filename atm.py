@@ -85,15 +85,15 @@ while True:
     choice = input("Enter your choice (1-5): ")
 
     if choice == '1' or choice == '4' or choice == '5':
-        atm_sock.send(choice.encode)
+        atm_sock.send(choice.encode('utf-8'))
         servMsg = atm_sock.recv(1024)
         print(servMsg.decode())
         if choice == '5':
             break
     elif choice == '2' or choice == '3':
         amount = float(input("Enter the amount: "))
-        atm_sock.send(choice.encode())
-        atm_sock.send(str(amount).encode())
+        atm_sock.send(choice.encode('utf-8'))
+        atm_sock.send(str(amount).encode('utf-8'))
         servMsg = atm_sock.recv(1024)
         print(servMsg.decode())
     else:

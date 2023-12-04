@@ -28,7 +28,6 @@ class BankServer:
 			if account['userID'] == user_id and account['pin'] == pin:
 				return True
 		else:
-			print(f"account: {user_id} not found")
 			return False
     
 	def get_account(self,user_id):
@@ -138,48 +137,50 @@ while True:
 	cliSock, cliInfo = bank_Sock.accept()
 
 	print("Client connected from: " + str(cliInfo))
-	
-	#Authentication Loop
-	while True:
-		print('In in the Authentication loop ')
-		user_id = cliSock.recv(1024).decode('utf-8')
-		pin = cliSock.recv(1024).decode('utf-8')
 
-		print(f"{user_id} and {pin}")
+	print('outside of request loop')
+	user_id = cliSock.recv(1024).decode('utf-8')
+	pin = cliSock.recv(1024).decode('utf-8')
+
+	print(f"{user_id} and {pin}")
         
-		if bank_server.verify_credentials(user_id, int(pin)):
-			mes = "Valid credentials"
-			cliSock.send(mes.encode("utf-8"))
-		else:
-			invalidMes = "Invalid credentials"
-			cliSock.send(invalidMes.encode("utf-8"))
-			break
+	if bank_server.verify_credentials(user_id, int(pin)):
+		mes = "Valid credentials"
+		cliSock.send(mes.encode("utf-8"))
+	else:
+		mes = "Invalid user"
+		cliSock.send(mes.encode('utf-8'))
+		print(f"account: {user_id} not found")
+		bank_Sock.close()
+		cliSock.close()
+	
+	while True and bank_server.verify_credentials(user_id , int(pin)):
                
-		while True and bank_server.verify_credentials(user_id , pin):
-			request = cliSock.recv(1024).decode('utf-8')
+
+		request = cliSock.recv(1024).decode('utf-8')
         
-			if request == '1':
-				response = bank_server.get_balance(user_id)
-			elif request == '2':
-				amount = float(cliSock.recv(1024).decode('utf-8'))
-				response = bank_server.deposit(user_id, amount)
-			elif request == '3':
-				amount = float(cliSock.recv(1024).decode('utf-8'))
-				response = bank_server.withdraw(user_id , amount)
-			elif request == '4':
-				response = bank_server.get_activities(user_id)
-			elif request == '5':
-				response = "Goodbye! closing connection now"
-				cliSock.send(response.encode())
-				cliSock.close()
-				break
-			else:
-				response = "Invalid option. Try again"
+		if request == '1':
+			response = bank_server.get_balance(user_id)
+		elif request == '2':
+			amount = float(cliSock.recv(1024).decode('utf-8'))
+			response = bank_server.deposit(user_id, amount)
+		elif request == '3':
+			amount = float(cliSock.recv(1024).decode('utf-8'))
+			response = bank_server.withdraw(user_id , amount)
+		elif request == '4':
+			response = bank_server.get_activities(user_id)
+		elif request == '5':
+			response = "Goodbye! closing connection now"
+			cliSock.send(response.encode())
+			cliSock.close()
+			break
+		else:
+			response = "Invalid option. Try again"
         
 	
 			cliSock.send(response.encode())
-	break
-
+	
+	break	
 bank_Sock.close()
 cliSock.close()
 
