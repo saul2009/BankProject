@@ -158,27 +158,30 @@ while True:
                
 
 		request = cliSock.recv(1024).decode('utf-8')
+		print(f"I have gotten the request, {request}")
         
-		if request == '1':
-			response = bank_server.get_balance(user_id)
-		elif request == '2':
-			amount = float(cliSock.recv(1024).decode('utf-8'))
-			response = bank_server.deposit(user_id, amount)
-		elif request == '3':
-			amount = float(cliSock.recv(1024).decode('utf-8'))
-			response = bank_server.withdraw(user_id , amount)
-		elif request == '4':
-			response = bank_server.get_activities(user_id)
-		elif request == '5':
-			response = "Goodbye! closing connection now"
-			cliSock.send(response.encode())
-			cliSock.close()
-			break
-		else:
-			response = "Invalid option. Try again"
+		match request:
+			case '1':
+				response = bank_server.get_balance(user_id)
+				print(f"I am in get balance because of {request}")
+			case '2':
+				amount = float(cliSock.recv(1024).decode('utf-8'))
+				response = bank_server.deposit(user_id, amount)
+			case '3':
+				amount = float(cliSock.recv(1024).decode('utf-8'))
+				response = bank_server.withdraw(user_id , amount)
+			case '4':
+				response = bank_server.get_activities(user_id)
+			case '5':
+				response = "Goodbye! closing connection now"
+				cliSock.send(response.encode())
+				cliSock.close()
+				break
+			case _:
+				response = "Invalid option. Try again"
         
 	
-			cliSock.send(response.encode())
+		cliSock.send(response.encode("utf-8"))
 	
 	break	
 bank_Sock.close()

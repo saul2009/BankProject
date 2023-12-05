@@ -86,6 +86,7 @@ while True:
 
     if choice == '1' or choice == '4' or choice == '5':
         atm_sock.send(choice.encode('utf-8'))
+        print(f"I am in choice section because you picked {choice}")
         servMsg = atm_sock.recv(1024)
         print(servMsg.decode())
         if choice == '5':
@@ -99,7 +100,7 @@ while True:
     else:
         print("Invalid choice")
     
-    atm_sock.close()
+atm_sock.close()
 
 
 
