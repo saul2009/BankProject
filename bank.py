@@ -67,9 +67,9 @@ class BankServer:
     
 	def log_activity(self, user_id, activity):
 		timestamp = datetime.datetime.now()
-		if user_id not in self.activities:
+		if user_id not in self.activities: #only saves one b/c userID is registered so it only saves once
 			self.activities[user_id] = []
-			self.activities[user_id].append(f"{timestamp} - {activity}")
+		self.activities[user_id].append(f"{timestamp} - {activity}")
         
 
 
