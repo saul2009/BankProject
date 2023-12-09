@@ -2,6 +2,7 @@ import os
 import socket
 import rsa ##pip install rsa
 import datetime
+import time
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 
@@ -67,7 +68,7 @@ class BankServer:
     
 	def log_activity(self, user_id, activity):
 		timestamp = datetime.datetime.now()
-		if user_id not in self.activities: #only saves one b/c userID is registered so it only saves once
+		if user_id not in self.activities: 
 			self.activities[user_id] = []
 		self.activities[user_id].append(f"{timestamp} - {activity}")
         
@@ -138,22 +139,73 @@ while True:
 
 	print("Client connected from: " + str(cliInfo))
 
-	print('outside of request loop')
+	userinput = True
+	print('\ninside of authenticaion loop')
 	user_id = cliSock.recv(1024).decode('utf-8')
 	pin = cliSock.recv(1024).decode('utf-8')
-
 	print(f"{user_id} and {pin}")
-        
-	if bank_server.verify_credentials(user_id, int(pin)):
-		mes = "Valid credentials"
-		cliSock.send(mes.encode("utf-8"))
-	else:
-		mes = "Invalid user"
-		cliSock.send(mes.encode('utf-8'))
-		print(f"account: {user_id} not found")
-		bank_Sock.close()
-		cliSock.close()
+	attempts = 1
 	
+
+	#Authentication loop
+	while True:    
+		
+		print(f"this is how many attempts are loged in loop {attempts}")
+
+		if bank_server.verify_credentials(user_id, int(pin)):
+			mes = "Valid credentials"
+			cliSock.send(mes.encode("utf-8"))
+			time.sleep(.5)
+			attempts = 0
+			cliSock.send(str(attempts).encode("utf-8")) #send attempts and if it equals 0 in client side, go to menu 
+			time.sleep(.5)
+			acountValid = 1
+			cliSock.send(str(acountValid).encode("utf-8"))
+			time.sleep(.5)
+			print("user was valid in bank server")
+			break
+
+		if attempts < 3 and attempts !=0:
+			mes = "Invalid credentials, Try again"
+			cliSock.send(mes.encode("utf-8"))
+			time.sleep(.5)
+			attempts += 1
+			cliSock.send(str(attempts).encode("utf-8"))
+			time.sleep(.5)
+			acountValid = 0
+			cliSock.send(str(acountValid).encode("utf-8"))
+			print(f"Client sent incorrect log in, Attmept {attempts}/3")
+			if attempts == 3:
+				print(f"userinput has turned false and attempts is {attempts}")
+				user_id = cliSock.recv(1024).decode('utf-8')
+				time.sleep(.5)
+				pin = cliSock.recv(1024).decode('utf-8')
+				time.sleep(.5)
+				mes = "Final attempt "
+				cliSock.send(mes.encode("utf-8"))
+				time.sleep(.5)
+				attempts += 1
+				cliSock.send(str(attempts).encode("utf-8"))
+				time.sleep(.5)
+				acountValid = 0
+				cliSock.send(str(acountValid).encode("utf-8"))
+				userinput = False
+
+		if attempts == 4:
+			print(f"account: {user_id} not found")
+			time.sleep(.5)
+			acountValid = 0
+			cliSock.send(str(acountValid).encode("utf-8"))
+			bank_Sock.close()
+			cliSock.close()
+			break
+	
+		if  userinput:
+			print('\ninside of authenticaion loop')
+			user_id = cliSock.recv(1024).decode('utf-8')
+			pin = cliSock.recv(1024).decode('utf-8')
+			print(f"{user_id} and {pin}")
+
 	while True and bank_server.verify_credentials(user_id , int(pin)):
                
 
@@ -183,7 +235,7 @@ while True:
 	
 		cliSock.send(response.encode("utf-8"))
 	
-	break	
+	break
 bank_Sock.close()
 cliSock.close()
 

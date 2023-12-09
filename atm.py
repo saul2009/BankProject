@@ -2,6 +2,7 @@ import os
 import socket
 import rsa
 import datetime
+import time
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 
@@ -61,20 +62,55 @@ atm_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Attempt to connect to the server
 atm_sock.connect((SERVER_IP, SERVER_PORT))
 
-
 # Send the message to the server
 user_id = input("enter your user ID: ")
 atm_sock.send(user_id.encode('utf-8'))
+time.sleep(.4)
 pin = input("enter your PIN: ")
 atm_sock.send(pin.encode('utf-8'))
- 
+
 # Recive the response from the server
 servMsg = atm_sock.recv(1024)
-
-#print 
 print("server sent this back " + servMsg.decode())
+attempts = int(atm_sock.recv(1024).decode('utf-8')) # get attempts 
+print("amonut of attempts recived " + str(attempts))
+accountValid = int(atm_sock.recv(1024).decode())
 
-while True:
+while accountValid == 0: 
+    print(f"I am inside the attmpts loop {attempts}")
+
+    if attempts == 0:
+        servMsg = atm_sock.recv(1024)
+        print("server sent this back " + servMsg.decode())
+        attempts = int(atm_sock.recv(1024).decode('utf-8')) # get attempts 
+        time.sleep(.5)
+        print("amonut of attempts recived " + str(attempts))
+        accountValid = int(atm_sock.recv(1024).decode())
+        break
+    elif attempts > 0 and attempts != 4:
+        print(f"\ninccorect login, try again. ({attempts}/3)")
+        user_id = input("enter your user ID: ")
+        atm_sock.send(user_id.encode('utf-8'))
+        time.sleep(.5)
+        pin = input("enter your PIN: ")
+        atm_sock.send(pin.encode('utf-8'))
+        time.sleep(.5)
+        servMsg = atm_sock.recv(1024)
+        print("server sent this back " + servMsg.decode())
+        attempts = int(atm_sock.recv(1024).decode('utf-8')) # get attempts 
+        print("amonut of attempts recived " + str(attempts))
+        time.sleep(.5)
+        accountValid = int(atm_sock.recv(1024).decode())
+    elif attempts == 4:
+        print("Invalid user found")
+        accountValid = int(atm_sock.recv(1024).decode())
+        atm_sock.close()
+        break
+
+print("server sent this back " + servMsg.decode())
+print(f"{accountValid}")
+
+while True and accountValid:
     print("\nMenu:")
     print("1. Check Balance")
     print("2. Deposit Money")
