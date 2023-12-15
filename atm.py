@@ -62,6 +62,24 @@ atm_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Attempt to connect to the server
 atm_sock.connect((SERVER_IP, SERVER_PORT))
 
+###### AUTH BANK
+
+challenge = atm_sock.recv(4096)
+
+signature = rsa.sign(challenge,atm1_private_key,'SHA-256')
+
+atm_sock.send(signature)
+
+auth_result = atm_sock.recv(4096).decode('utf-8')
+
+if auth_result == 'authenticated':
+    print("This ATM has been authenticated")
+else:
+    print("ATM authentication failed.")
+    atm_sock.close()
+
+###### AUTH BANK
+
 # Send the message to the server
 user_id = input("enter your user ID: ")
 atm_sock.send(user_id.encode('utf-8'))

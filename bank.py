@@ -87,6 +87,11 @@ def load_private_key(file_path):
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
         return private_key
 
+def generate_challenge():
+	#Generate a random byte sting as a challenge
+	challenge_length = 16
+	challenge = os.urandom(challenge_length)
+	return challenge
 
 ##Specify the directories containing the public key
 
@@ -139,6 +144,21 @@ while True:
 
 	print("Client connected from: " + str(cliInfo))
 
+###### AUTHENTICATE ATM
+	challenge = generate_challenge()
+	cliSock.send(challenge)
+
+	signature = cliSock.recv(4096)
+
+	try:
+		rsa.verify(challenge, signature, atm1_public_key)
+		auth_result = "authenticated"
+	except rsa.VerificationError:
+		auth_result = "not_authenticated"
+	
+	cliSock.send(auth_result.encode('utf-8'))
+###### AUTHENTICATE ATM
+
 	userinput = True
 	print('\ninside of authenticaion loop')
 	user_id = cliSock.recv(1024).decode('utf-8')
@@ -146,7 +166,7 @@ while True:
 	print(f"{user_id} and {pin}")
 	attempts = 1
 	
-
+#	clear_message = rsa.decrypt(cliMsg , bank_private_key)
 	#Authentication loop
 	while True:    
 		
@@ -181,7 +201,7 @@ while True:
 				time.sleep(.5)
 				pin = cliSock.recv(1024).decode('utf-8')
 				time.sleep(.5)
-				mes = "Final attempt "
+				mes = "Amount of attempts exceeded " #should be final attempt and send user id 
 				cliSock.send(mes.encode("utf-8"))
 				time.sleep(.5)
 				attempts += 1
