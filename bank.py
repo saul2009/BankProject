@@ -3,7 +3,8 @@ import socket
 import rsa ##pip install rsa
 import datetime
 import time
-from Crypto.Signature import PKCS1_v1_5
+from Crypto.PublicKey import DSA
+from Crypto.Signature import DSS
 from Crypto.Hash import SHA256
 
 ####Create 1024 key for bank/atm
@@ -93,6 +94,7 @@ def generate_challenge():
 	challenge = os.urandom(challenge_length)
 	return challenge
 
+############# RSA encrypt with PUBLIC and decrypt with PRIVATE
 def encrypt_messageRSA(message,public_key):
     ciphertext = rsa.encrypt(message.encode(),public_key)
     print(f"{ciphertext} using encrypt function")
@@ -100,9 +102,27 @@ def encrypt_messageRSA(message,public_key):
 
 def decrypt_messageRSA(ciphertext, private_key):
     decryp_mes = rsa.decrypt(ciphertext, private_key)
-    print(f"{decryp_mes} using decrypt function")
+    print(f"{decryp_mes} using decrypt fucntion")
     return decryp_mes.decode()
 
+############### DSA encrypt with private and decrypt with Private
+
+def sign_messageDSA(message, privatekey):
+
+    hash_obj = SHA256.new(message)
+    signer = DSS.new(privatekey , 'fips-186-3')
+    signature = signer.sign(hash_obj)
+    return signature
+
+def verify_messageDSA(message, signature, publickey):
+    hash_obj = SHA256.new(message)
+    verifier = DSS.new(publickey, 'fips-186-3')
+    try:
+        verifier.verify(hash_obj,signature)
+        return True
+    except ValueError:
+        return False
+    
 ##Specify the directories containing the public key
 
 current_dir = os.getcwd()

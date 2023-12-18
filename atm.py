@@ -3,7 +3,8 @@ import socket
 import rsa
 import datetime
 import time
-from Crypto.Signature import PKCS1_v1_5
+from Crypto.PublicKey import DSA
+from Crypto.Signature import DSS
 from Crypto.Hash import SHA256
 
 ##################################### Functions to assist ##########################################################
@@ -19,6 +20,7 @@ def load_private_key(file_path):
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
         return private_key
     
+############# RSA encrypt with PUBLIC and decrypt with PRIVATE
 def encrypt_messageRSA(message,public_key):
     ciphertext = rsa.encrypt(message.encode(),public_key)
     print(f"{ciphertext} using encrypt function")
@@ -28,6 +30,24 @@ def decrypt_messageRSA(ciphertext, private_key):
     decryp_mes = rsa.decrypt(ciphertext, private_key)
     print(f"{decryp_mes} using decrypt fucntion")
     return decryp_mes.decode()
+
+############### DSA encrypt with private and decrypt with Private
+
+def sign_messageDSA(message, privatekey):
+
+    hash_obj = SHA256.new(message)
+    signer = DSS.new(privatekey , 'fips-186-3')
+    signature = signer.sign(hash_obj)
+    return signature
+
+def verify_messageDSA(message, signature, publickey):
+    hash_obj = SHA256.new(message)
+    verifier = DSS.new(publickey, 'fips-186-3')
+    try:
+        verifier.verify(hash_obj,signature)
+        return True
+    except ValueError:
+        return False
     
 
 ########################### load public keys for atm and keys for bank ##############################################
