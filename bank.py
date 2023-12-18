@@ -225,9 +225,15 @@ while True:
 			print(f"Client sent incorrect log in, Attmept {attempts}/3")
 			if attempts == 3:
 				print(f"userinput has turned false and attempts is {attempts}")
-				user_id = cliSock.recv(1024).decode()
+				user_id = cliSock.recv(1024)
+				if(rsaMethod == 1):
+					print(f"{user_id} this is user_id encrypted message recv (RSA)")
+					user_id = decrypt_messageRSA(user_id,bank_private_key)
 				time.sleep(.5)
-				pin = cliSock.recv(1024).decode()
+				pin = cliSock.recv(1024)
+				if(rsaMethod == 1):
+					print(f"{pin} this is pin encrypted message recv (RSA)")
+					pin = decrypt_messageRSA(pin,bank_private_key)
 				time.sleep(.5)
 				mes = "Amount of attempts exceeded " #should be final attempt and send user id 
 				cliSock.send(mes.encode())
