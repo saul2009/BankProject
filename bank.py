@@ -167,15 +167,32 @@ while True:
 		auth_result = "not_authenticated"
 	
 	cliSock.send(auth_result.encode('utf-8'))
-###### AUTHENTICATE ATM
+################################
+	
 
+###### Method of encryption 	
+	rsaMethod = 1
+	rsaMethod = int(cliSock.recv(1024).decode())
+
+	if(rsaMethod == 0):
+		print("User has decided to use DSA for encryption ")
+		rsaMethod = False
+	else:
+		print("user has decided to use RSA for encryption ")
+
+
+##################################
+		
 	userinput = True
 	print('\ninside of authenticaion loop')
 	user_id = cliSock.recv(1024)
-	print(f"{user_id} this is once message is recv")
-	user_id = decrypt_message(user_id,bank_private_key)
+	if(rsaMethod == True):
+		print(f"{user_id} this is user_id encrypted message recv (RSA)")
+		user_id = decrypt_message(user_id,bank_private_key)
 	pin = cliSock.recv(1024)
-	pin = decrypt_message(pin,bank_private_key)
+	if(rsaMethod == True):
+		print(f"{pin} this is pin encrypted message recv (RSA)")
+		pin = decrypt_message(pin,bank_private_key)
 	print(f"{user_id} and {pin}")
 	attempts = 1
 	
@@ -187,62 +204,62 @@ while True:
 
 		if bank_server.verify_credentials(user_id, int(pin)):
 			mes = "Valid credentials"
-			cliSock.send(mes.encode("utf-8"))
+			cliSock.send(mes.encode())
 			time.sleep(.5)
 			attempts = 0
-			cliSock.send(str(attempts).encode("utf-8")) #send attempts and if it equals 0 in client side, go to menu 
+			cliSock.send(str(attempts).encode()) #send attempts and if it equals 0 in client side, go to menu 
 			time.sleep(.5)
 			acountValid = 1
-			cliSock.send(str(acountValid).encode("utf-8"))
+			cliSock.send(str(acountValid).encode())
 			time.sleep(.5)
 			print("user was valid in bank server")
 			break
 
 		if attempts < 3 and attempts !=0:
 			mes = "Invalid credentials, Try again"
-			cliSock.send(mes.encode("utf-8"))
+			cliSock.send(mes.encode())
 			time.sleep(.5)
 			attempts += 1
-			cliSock.send(str(attempts).encode("utf-8"))
+			cliSock.send(str(attempts).encode())
 			time.sleep(.5)
 			acountValid = 0
-			cliSock.send(str(acountValid).encode("utf-8"))
+			cliSock.send(str(acountValid).encode())
 			print(f"Client sent incorrect log in, Attmept {attempts}/3")
 			if attempts == 3:
 				print(f"userinput has turned false and attempts is {attempts}")
-				user_id = cliSock.recv(1024).decode('utf-8')
+				user_id = cliSock.recv(1024).decode()
 				time.sleep(.5)
-				pin = cliSock.recv(1024).decode('utf-8')
+				pin = cliSock.recv(1024).decode()
 				time.sleep(.5)
 				mes = "Amount of attempts exceeded " #should be final attempt and send user id 
-				cliSock.send(mes.encode("utf-8"))
+				cliSock.send(mes.encode())
 				time.sleep(.5)
 				attempts += 1
-				cliSock.send(str(attempts).encode("utf-8"))
+				cliSock.send(str(attempts).encode())
 				time.sleep(.5)
 				acountValid = 0
-				cliSock.send(str(acountValid).encode("utf-8"))
+				cliSock.send(str(acountValid).encode())
 				userinput = False
 
 		if attempts == 4:
 			print(f"account: {user_id} not found")
 			time.sleep(.5)
 			acountValid = 0
-			cliSock.send(str(acountValid).encode("utf-8"))
+			cliSock.send(str(acountValid).encode())
 			bank_Sock.close()
 			cliSock.close()
 			break
 	
 		if  userinput:
 			print('\ninside of authenticaion loop')
-			user_id = cliSock.recv(1024).decode('utf-8')
-			pin = cliSock.recv(1024).decode('utf-8')
+			user_id = cliSock.recv(1024).decode()
+			pin = cliSock.recv(1024).decode()
 			print(f"{user_id} and {pin}")
 
 	while True and bank_server.verify_credentials(user_id , int(pin)):
                
 
-		request = cliSock.recv(1024).decode('utf-8')
+		request = cliSock.recv(1024).decode()
 		print(f"I have gotten the request, {request}")
         
 		match request:
@@ -250,23 +267,25 @@ while True:
 				response = bank_server.get_balance(user_id)
 				print(f"I am in get balance because of {request}")
 			case '2':
-				amount = float(cliSock.recv(1024).decode('utf-8'))
+				amount = float(cliSock.recv(1024).decode())
 				response = bank_server.deposit(user_id, amount)
 			case '3':
-				amount = float(cliSock.recv(1024).decode('utf-8'))
+				amount = float(cliSock.recv(1024).decode())
 				response = bank_server.withdraw(user_id , amount)
 			case '4':
 				response = bank_server.get_activities(user_id)
 			case '5':
 				response = "Goodbye! closing connection now"
-				cliSock.send(response.encode())
+				encrypted_message = encrypt_message(response,atm1_public_key)
+				cliSock.send(encrypted_message)
 				cliSock.close()
 				break
 			case _:
 				response = "Invalid option. Try again"
         
-	
-		cliSock.send(response.encode("utf-8"))
+		if(rsaMethod == True):
+			encrypted_message = encrypt_message(response,atm1_public_key)
+			cliSock.send(encrypted_message)
 	
 	break
 bank_Sock.close()

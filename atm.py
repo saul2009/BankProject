@@ -88,7 +88,20 @@ else:
     print("ATM authentication failed.")
     atm_sock.close()
 
-###### AUTH BANK
+###################################
+
+######## Encryption method option
+
+while True:
+    encryption_method = int(input("Invalid choice\nHow would you want to encrypt you messages?(DSA:0 RSA:1)\nEncryption Method: "))
+    if encryption_method == 0 or encryption_method == 1:
+        break
+    else:
+        print("Invalid option\n")
+
+atm_sock.send(str(encryption_method).encode())
+
+########################################
 
 # Send the message to the server
 user_id = input("enter your user ID: ")
@@ -151,18 +164,20 @@ while True and accountValid:
     choice = input("Enter your choice (1-5): ")
 
     if choice == '1' or choice == '4' or choice == '5':
-        atm_sock.send(choice.encode('utf-8'))
+        atm_sock.send(choice.encode())
         print(f"I am in choice section because you picked {choice}")
         servMsg = atm_sock.recv(1024)
-        print(servMsg.decode())
+        servMsg = decrypt_message(servMsg, atm1_private_key)
+        print(servMsg)
         if choice == '5':
             break
     elif choice == '2' or choice == '3':
         amount = float(input("Enter the amount: "))
-        atm_sock.send(choice.encode('utf-8'))
-        atm_sock.send(str(amount).encode('utf-8'))
+        atm_sock.send(choice.encode())
+        atm_sock.send(str(amount).encode())
         servMsg = atm_sock.recv(1024)
-        print(servMsg.decode())
+        servMsg = decrypt_message(servMsg,atm1_private_key)
+        print(servMsg)
     else:
         print("Invalid choice")
     
