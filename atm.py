@@ -23,7 +23,7 @@ def load_private_key(file_path):
     
 ############# RSA encrypt with PUBLIC and decrypt with PRIVATE
 def encrypt_messageRSA(message,public_key):
-    ciphertext = rsa.encrypt(message,public_key)
+    ciphertext = rsa.encrypt(message.encode(),public_key)
     print(f"{ciphertext} using encrypt function")
     return ciphertext
 
@@ -209,9 +209,10 @@ while True and accountValid:
             servMsg = atm_sock.recv(1024)
             servMsg = decrypt_messageRSA(servMsg, atm1_private_key)
         else:
-            servMsg = atm_sock.recv(1024)
+            servMsg = atm_sock.recv(1024).decode()
+            time.sleep(.4)
             signature = atm_sock.recv(1024)
-            print("Signature has been recv for username")
+            print("Signature has been recv for ServMsg")
             time.sleep(.4)
             is_valid_signature = verify_messageDSA(servMsg, signature, bank_public_key)
             if is_valid_signature:
@@ -228,15 +229,16 @@ while True and accountValid:
             servMsg = atm_sock.recv(1024)
             servMsg = decrypt_messageRSA(servMsg,atm1_private_key)
         else:
-            servMsg = atm_sock.recv(1024)
+            servMsg = atm_sock.recv(1024).decode()
+            time.sleep(.4)
             signature = atm_sock.recv(1024)
-            print("Signature has been recv for username")
+            print("Signature has been recv for ServMes")
             time.sleep(.4)
             is_valid_signature = verify_messageDSA(servMsg, signature, bank_public_key)
             if is_valid_signature:
                 print(f"Signature is valid. Orignal message: {servMsg}\n")            
 
-        print(servMsg.decode())
+        print(servMsg)
     else:
         print("Invalid choice")
     
