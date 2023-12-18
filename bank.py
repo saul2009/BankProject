@@ -93,6 +93,16 @@ def generate_challenge():
 	challenge = os.urandom(challenge_length)
 	return challenge
 
+def encrypt_message(message,public_key):
+    ciphertext = rsa.encrypt(message.encode(),public_key)
+    print(f"{ciphertext}")
+    return ciphertext
+
+def decrypt_message(ciphertext, private_key):
+    decryp_mes = rsa.decrypt(ciphertext, private_key)
+    print(f"{decryp_mes}")
+    return decryp_mes.decode()
+
 ##Specify the directories containing the public key
 
 current_dir = os.getcwd()
@@ -161,8 +171,11 @@ while True:
 
 	userinput = True
 	print('\ninside of authenticaion loop')
-	user_id = cliSock.recv(1024).decode('utf-8')
-	pin = cliSock.recv(1024).decode('utf-8')
+	user_id = cliSock.recv(1024)
+	print(f"{user_id} this is once message is recv")
+	user_id = decrypt_message(user_id,bank_private_key)
+	pin = cliSock.recv(1024)
+	pin = decrypt_message(pin,bank_private_key)
 	print(f"{user_id} and {pin}")
 	attempts = 1
 	

@@ -19,6 +19,16 @@ def load_private_key(file_path):
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
         return private_key
     
+def encrypt_message(message,public_key):
+    ciphertext = rsa.encrypt(message.encode(),public_key)
+    print(f"{ciphertext}")
+    return ciphertext
+
+def decrypt_message(ciphertext, private_key):
+    decryp_mes = rsa.decrypt(ciphertext, private_key)
+    print(f"{decryp_mes}")
+    return decryp_mes.decode()
+    
 
 ########################### load public keys for atm and keys for bank ##############################################
 
@@ -82,10 +92,12 @@ else:
 
 # Send the message to the server
 user_id = input("enter your user ID: ")
-atm_sock.send(user_id.encode('utf-8'))
+encrypted_message = encrypt_message(user_id, bank_public_key)
+atm_sock.send(encrypt_message.encode())
 time.sleep(.4)
 pin = input("enter your PIN: ")
-atm_sock.send(pin.encode('utf-8'))
+encrypted_message = encrypt_message(pin, bank_public_key)
+atm_sock.send(encrypt_message.encode())
 
 # Recive the response from the server
 servMsg = atm_sock.recv(1024)
