@@ -93,11 +93,11 @@ else:
 # Send the message to the server
 user_id = input("enter your user ID: ")
 encrypted_message = encrypt_message(user_id, bank_public_key)
-atm_sock.send(encrypt_message.encode())
+atm_sock.send(encrypted_message)
 time.sleep(.4)
 pin = input("enter your PIN: ")
 encrypted_message = encrypt_message(pin, bank_public_key)
-atm_sock.send(encrypt_message.encode())
+atm_sock.send(encrypted_message)
 
 # Recive the response from the server
 servMsg = atm_sock.recv(1024)
