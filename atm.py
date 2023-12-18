@@ -3,9 +3,10 @@ import socket
 import rsa
 import datetime
 import time
-from Crypto.PublicKey import DSA
-from Crypto.Signature import DSS
-from Crypto.Hash import SHA256
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import dsa
+from cryptography.hazmat.primitives import serialization
 
 ##################################### Functions to assist ##########################################################
 
@@ -22,7 +23,7 @@ def load_private_key(file_path):
     
 ############# RSA encrypt with PUBLIC and decrypt with PRIVATE
 def encrypt_messageRSA(message,public_key):
-    ciphertext = rsa.encrypt(message.encode(),public_key)
+    ciphertext = rsa.encrypt(message,public_key)
     print(f"{ciphertext} using encrypt function")
     return ciphertext
 
@@ -34,19 +35,14 @@ def decrypt_messageRSA(ciphertext, private_key):
 ############### DSA encrypt with private and decrypt with Private
 
 def sign_messageDSA(message, privatekey):
-
-    hash_obj = SHA256.new(message)
-    signer = DSS.new(privatekey , 'fips-186-3')
-    signature = signer.sign(hash_obj)
+    signature = rsa.sign(message.encode(), privatekey, "SHA-256")
     return signature
 
 def verify_messageDSA(message, signature, publickey):
-    hash_obj = SHA256.new(message)
-    verifier = DSS.new(publickey, 'fips-186-3')
     try:
-        verifier.verify(hash_obj,signature)
+        rsa.verify(message.encode(), signature, publickey)
         return True
-    except ValueError:
+    except:
         return False
     
 
@@ -128,11 +124,21 @@ user_id = input("enter your user ID: ")
 if(encryption_method == 1):
     encrypted_message = encrypt_messageRSA(user_id, bank_public_key)
     atm_sock.send(encrypted_message)
+else:
+    atm_sock.send(user_id.encode())
+    signature = sign_messageDSA(user_id, atm1_private_key)
+    atm_sock.send(signature)
+    time.sleep(.4)
 time.sleep(.4)
 pin = input("enter your PIN: ")
 if(encryption_method == 1):
     encrypted_message = encrypt_messageRSA(pin, bank_public_key)
     atm_sock.send(encrypted_message)
+else:
+    atm_sock.send(pin.encode())
+    signature = sign_messageDSA(pin, atm1_private_key)
+    atm_sock.send(signature)
+    time.sleep(.4)
 
 # Recive the response from the server
 servMsg = atm_sock.recv(1024)
@@ -158,11 +164,19 @@ while accountValid == 0:
         if(encryption_method == 1):
             encrypted_message = encrypt_messageRSA(user_id, bank_public_key)
             atm_sock.send(encrypted_message)
+        else:
+            atm_sock.send(user_id.encode())
+            signature = sign_messageDSA(user_id, atm1_private_key)
+            atm_sock.send(signature)
         time.sleep(.5)
         pin = input("enter your PIN: ")
         if(encryption_method == 1):
             encrypted_message = encrypt_messageRSA(pin, bank_public_key)
             atm_sock.send(encrypted_message)
+        else:
+            atm_sock.send(pin.encode())
+            signature = sign_messageDSA(pin, atm1_private_key)
+            atm_sock.send(signature)
         time.sleep(.5)
         servMsg = atm_sock.recv(1024)
         print("server sent this back " + servMsg.decode())
@@ -191,10 +205,18 @@ while True and accountValid:
 
     if choice == '1' or choice == '4' or choice == '5':
         atm_sock.send(choice.encode())
-        print(f"I am in choice section because you picked {choice}")
         if(encryption_method == 1):
             servMsg = atm_sock.recv(1024)
             servMsg = decrypt_messageRSA(servMsg, atm1_private_key)
+        else:
+            servMsg = atm_sock.recv(1024)
+            signature = atm_sock.recv(1024)
+            print("Signature has been recv for username")
+            time.sleep(.4)
+            is_valid_signature = verify_messageDSA(servMsg, signature, bank_public_key)
+            if is_valid_signature:
+                print(f"Signature is valid. Orignal message: {servMsg}\n")
+
         print(servMsg)
         if choice == '5':
             break
@@ -205,7 +227,16 @@ while True and accountValid:
         if(encryption_method == 1):
             servMsg = atm_sock.recv(1024)
             servMsg = decrypt_messageRSA(servMsg,atm1_private_key)
-        print(servMsg)
+        else:
+            servMsg = atm_sock.recv(1024)
+            signature = atm_sock.recv(1024)
+            print("Signature has been recv for username")
+            time.sleep(.4)
+            is_valid_signature = verify_messageDSA(servMsg, signature, bank_public_key)
+            if is_valid_signature:
+                print(f"Signature is valid. Orignal message: {servMsg}\n")            
+
+        print(servMsg.decode())
     else:
         print("Invalid choice")
     

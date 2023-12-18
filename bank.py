@@ -3,9 +3,10 @@ import socket
 import rsa ##pip install rsa
 import datetime
 import time
-from Crypto.PublicKey import DSA
-from Crypto.Signature import DSS
-from Crypto.Hash import SHA256
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import dsa
+from cryptography.hazmat.primitives import serialization
 
 ####Create 1024 key for bank/atm
 ##atm_public_key, atm_private_key = rsa.newkeys(1024)
@@ -96,7 +97,7 @@ def generate_challenge():
 
 ############# RSA encrypt with PUBLIC and decrypt with PRIVATE
 def encrypt_messageRSA(message,public_key):
-    ciphertext = rsa.encrypt(message.encode(),public_key)
+    ciphertext = rsa.encrypt(message,public_key)
     print(f"{ciphertext} using encrypt function")
     return ciphertext
 
@@ -108,21 +109,16 @@ def decrypt_messageRSA(ciphertext, private_key):
 ############### DSA encrypt with private and decrypt with Private
 
 def sign_messageDSA(message, privatekey):
-
-    hash_obj = SHA256.new(message)
-    signer = DSS.new(privatekey , 'fips-186-3')
-    signature = signer.sign(hash_obj)
+    signature = rsa.sign(message.encode(), privatekey, "SHA-256")
     return signature
 
 def verify_messageDSA(message, signature, publickey):
-    hash_obj = SHA256.new(message)
-    verifier = DSS.new(publickey, 'fips-186-3')
     try:
-        verifier.verify(hash_obj,signature)
+        rsa.verify(message.encode(), signature, publickey)
         return True
-    except ValueError:
+    except:
         return False
-    
+	
 ##Specify the directories containing the public key
 
 current_dir = os.getcwd()
@@ -205,14 +201,28 @@ while True:
 		
 	userinput = True
 	print('\ninside of authenticaion loop')
-	user_id = cliSock.recv(1024)
+	user_id = cliSock.recv(1024).decode()
 	if(rsaMethod == True):
 		print(f"{user_id} this is user_id encrypted message recv (RSA)")
 		user_id = decrypt_messageRSA(user_id,bank_private_key)
-	pin = cliSock.recv(1024)
+	else:
+		signature = cliSock.recv(1024)
+		print("Signature has been recv for username")
+		time.sleep(.4)
+		is_valid_signature = verify_messageDSA(user_id, signature, atm1_public_key)
+		if is_valid_signature:
+			print(f"Signature is valid. Orignal message: {user_id}\n")
+	pin = cliSock.recv(1024).decode()
 	if(rsaMethod == True):
 		print(f"{pin} this is pin encrypted message recv (RSA)")
 		pin = decrypt_messageRSA(pin,bank_private_key)
+	else:
+		signature = cliSock.recv(1024)
+		print("Signature has been recv for pin")
+		time.sleep(.4)
+		is_valid_signature = verify_messageDSA(pin, signature, atm1_public_key)
+		if is_valid_signature:
+			print(f"Signature is valid. Orignal message: {pin}\n")
 	print(f"{user_id} and {pin}")
 	attempts = 1
 	
@@ -249,11 +259,25 @@ while True:
 				if(rsaMethod == 1):
 					print(f"{user_id} this is user_id encrypted message recv (RSA)")
 					user_id = decrypt_messageRSA(user_id,bank_private_key)
+				else:
+					signature = cliSock.recv(1024)
+					print("Signature has been recv for username")
+					time.sleep(.4)
+					is_valid_signature = verify_messageDSA(user_id, signature, atm1_public_key)
+					if is_valid_signature:
+						print(f"Signature is valid. Orignal message: {user_id}\n")
 				time.sleep(.5)
 				pin = cliSock.recv(1024)
 				if(rsaMethod == 1):
 					print(f"{pin} this is pin encrypted message recv (RSA)")
 					pin = decrypt_messageRSA(pin,bank_private_key)
+				else:
+					signature = cliSock.recv(1024)
+					print("Signature has been recv for pin")
+					time.sleep(.4)
+					is_valid_signature = verify_messageDSA(pin, signature, atm1_public_key)
+					if is_valid_signature:
+						print(f"Signature is valid. Orignal message: {pin}\n")
 				time.sleep(.5)
 				mes = "Amount of attempts exceeded " #should be final attempt and send user id 
 				cliSock.send(mes.encode())
@@ -276,15 +300,29 @@ while True:
 	
 		if  userinput:
 			print('\ninside of authenticaion loop')
-			user_id = cliSock.recv(1024)
+			user_id = cliSock.recv(1024).decode()
 			if(rsaMethod == True):
 				print(f"{user_id} this is user_id encrypted message recv (RSA)")
 				user_id = decrypt_messageRSA(user_id,bank_private_key)
-			pin = cliSock.recv(1024)
+			else:
+				signature = cliSock.recv(1024)
+				print("Signature has been recv for username")
+				time.sleep(.4)
+				is_valid_signature = verify_messageDSA(user_id, signature, atm1_public_key)
+				if is_valid_signature:
+					print(f"Signature is valid. Orignal message: {user_id}\n")
+			pin = cliSock.recv(1024).decode()
 			if(rsaMethod == True):
 				print(f"{pin} this is pin encrypted message recv (RSA)")
 				pin = decrypt_messageRSA(pin,bank_private_key)
-			print(f"{user_id} and {pin}")			
+			else:
+				signature = cliSock.recv(1024)
+				print("Signature has been recv for pin")
+				time.sleep(.4)
+				is_valid_signature = verify_messageDSA(pin, signature, atm1_public_key)
+				if is_valid_signature:
+					print(f"Signature is valid. Orignal message: {pin}\n")
+					print(f"{user_id} and {pin}")			
 
 
 	while True and bank_server.verify_credentials(user_id , int(pin)):
@@ -307,8 +345,13 @@ while True:
 				response = bank_server.get_activities(user_id)
 			case '5':
 				response = "Goodbye! closing connection now"
-				encrypted_message = encrypt_messageRSA(response,atm1_public_key)
-				cliSock.send(encrypted_message)
+				if(rsaMethod == True):
+					encrypted_message = encrypt_messageRSA(response,atm1_public_key)
+					cliSock.send(encrypted_message)
+				else:
+					cliSock.send(response.encode())
+					signature = sign_messageDSA(response,bank_private_key)
+					cliSock.send(signature)
 				cliSock.close()
 				break
 			case _:
@@ -317,6 +360,11 @@ while True:
 		if(rsaMethod == True):
 			encrypted_message = encrypt_messageRSA(response,atm1_public_key)
 			cliSock.send(encrypted_message)
+		else:
+			cliSock.send(response.encode())
+			signature = sign_messageDSA(response,bank_private_key)
+			cliSock.send(signature)
+			time.sleep(.4)
 	
 	break
 bank_Sock.close()
