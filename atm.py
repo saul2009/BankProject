@@ -19,14 +19,14 @@ def load_private_key(file_path):
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
         return private_key
     
-def encrypt_message(message,public_key):
+def encrypt_messageRSA(message,public_key):
     ciphertext = rsa.encrypt(message.encode(),public_key)
-    print(f"{ciphertext}")
+    print(f"{ciphertext} using encrypt function")
     return ciphertext
 
-def decrypt_message(ciphertext, private_key):
+def decrypt_messageRSA(ciphertext, private_key):
     decryp_mes = rsa.decrypt(ciphertext, private_key)
-    print(f"{decryp_mes}")
+    print(f"{decryp_mes} using decrypt fucntion")
     return decryp_mes.decode()
     
 
@@ -105,12 +105,14 @@ atm_sock.send(str(encryption_method).encode())
 
 # Send the message to the server
 user_id = input("enter your user ID: ")
-encrypted_message = encrypt_message(user_id, bank_public_key)
-atm_sock.send(encrypted_message)
+if(encryption_method == 1):
+    encrypted_message = encrypt_messageRSA(user_id, bank_public_key)
+    atm_sock.send(encrypted_message)
 time.sleep(.4)
 pin = input("enter your PIN: ")
-encrypted_message = encrypt_message(pin, bank_public_key)
-atm_sock.send(encrypted_message)
+if(encryption_method == 1):
+    encrypted_message = encrypt_messageRSA(pin, bank_public_key)
+    atm_sock.send(encrypted_message)
 
 # Recive the response from the server
 servMsg = atm_sock.recv(1024)
@@ -133,10 +135,14 @@ while accountValid == 0:
     elif attempts > 0 and attempts != 4:
         print(f"\ninccorect login, try again. ({attempts}/3)")
         user_id = input("enter your user ID: ")
-        atm_sock.send(user_id.encode('utf-8'))
+        if(encryption_method == 1):
+            encrypted_message = encrypt_messageRSA(user_id, bank_public_key)
+            atm_sock.send(encrypted_message)
         time.sleep(.5)
         pin = input("enter your PIN: ")
-        atm_sock.send(pin.encode('utf-8'))
+        if(encryption_method == 1):
+            encrypted_message = encrypt_messageRSA(pin, bank_public_key)
+            atm_sock.send(encrypted_message)
         time.sleep(.5)
         servMsg = atm_sock.recv(1024)
         print("server sent this back " + servMsg.decode())
@@ -166,8 +172,9 @@ while True and accountValid:
     if choice == '1' or choice == '4' or choice == '5':
         atm_sock.send(choice.encode())
         print(f"I am in choice section because you picked {choice}")
-        servMsg = atm_sock.recv(1024)
-        servMsg = decrypt_message(servMsg, atm1_private_key)
+        if(encryption_method == 1):
+            servMsg = atm_sock.recv(1024)
+            servMsg = decrypt_messageRSA(servMsg, atm1_private_key)
         print(servMsg)
         if choice == '5':
             break
@@ -175,8 +182,9 @@ while True and accountValid:
         amount = float(input("Enter the amount: "))
         atm_sock.send(choice.encode())
         atm_sock.send(str(amount).encode())
-        servMsg = atm_sock.recv(1024)
-        servMsg = decrypt_message(servMsg,atm1_private_key)
+        if(encryption_method == 1):
+            servMsg = atm_sock.recv(1024)
+            servMsg = decrypt_messageRSA(servMsg,atm1_private_key)
         print(servMsg)
     else:
         print("Invalid choice")

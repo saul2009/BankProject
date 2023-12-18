@@ -93,14 +93,14 @@ def generate_challenge():
 	challenge = os.urandom(challenge_length)
 	return challenge
 
-def encrypt_message(message,public_key):
+def encrypt_messageRSA(message,public_key):
     ciphertext = rsa.encrypt(message.encode(),public_key)
-    print(f"{ciphertext}")
+    print(f"{ciphertext} using encrypt function")
     return ciphertext
 
-def decrypt_message(ciphertext, private_key):
+def decrypt_messageRSA(ciphertext, private_key):
     decryp_mes = rsa.decrypt(ciphertext, private_key)
-    print(f"{decryp_mes}")
+    print(f"{decryp_mes} using decrypt function")
     return decryp_mes.decode()
 
 ##Specify the directories containing the public key
@@ -188,16 +188,14 @@ while True:
 	user_id = cliSock.recv(1024)
 	if(rsaMethod == True):
 		print(f"{user_id} this is user_id encrypted message recv (RSA)")
-		user_id = decrypt_message(user_id,bank_private_key)
+		user_id = decrypt_messageRSA(user_id,bank_private_key)
 	pin = cliSock.recv(1024)
 	if(rsaMethod == True):
 		print(f"{pin} this is pin encrypted message recv (RSA)")
-		pin = decrypt_message(pin,bank_private_key)
+		pin = decrypt_messageRSA(pin,bank_private_key)
 	print(f"{user_id} and {pin}")
 	attempts = 1
 	
-#	clear_message = rsa.decrypt(cliMsg , bank_private_key)
-	#Authentication loop
 	while True:    
 		
 		print(f"this is how many attempts are loged in loop {attempts}")
@@ -252,15 +250,22 @@ while True:
 	
 		if  userinput:
 			print('\ninside of authenticaion loop')
-			user_id = cliSock.recv(1024).decode()
-			pin = cliSock.recv(1024).decode()
-			print(f"{user_id} and {pin}")
+			user_id = cliSock.recv(1024)
+			if(rsaMethod == True):
+				print(f"{user_id} this is user_id encrypted message recv (RSA)")
+				user_id = decrypt_messageRSA(user_id,bank_private_key)
+			pin = cliSock.recv(1024)
+			if(rsaMethod == True):
+				print(f"{pin} this is pin encrypted message recv (RSA)")
+				pin = decrypt_messageRSA(pin,bank_private_key)
+			print(f"{user_id} and {pin}")			
+
 
 	while True and bank_server.verify_credentials(user_id , int(pin)):
                
 
 		request = cliSock.recv(1024).decode()
-		print(f"I have gotten the request, {request}")
+		print(f"\nI have gotten the request, {request}")
         
 		match request:
 			case '1':
@@ -276,7 +281,7 @@ while True:
 				response = bank_server.get_activities(user_id)
 			case '5':
 				response = "Goodbye! closing connection now"
-				encrypted_message = encrypt_message(response,atm1_public_key)
+				encrypted_message = encrypt_messageRSA(response,atm1_public_key)
 				cliSock.send(encrypted_message)
 				cliSock.close()
 				break
@@ -284,7 +289,7 @@ while True:
 				response = "Invalid option. Try again"
         
 		if(rsaMethod == True):
-			encrypted_message = encrypt_message(response,atm1_public_key)
+			encrypted_message = encrypt_messageRSA(response,atm1_public_key)
 			cliSock.send(encrypted_message)
 	
 	break
